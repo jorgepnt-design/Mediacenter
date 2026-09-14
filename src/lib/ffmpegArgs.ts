@@ -359,10 +359,11 @@ function buildGif(job: Job, settings: GifSettings): BuiltJob {
         {
           args: [
             ...before, '-i', input, ...after,
+            '-map', '0:v:0',
             '-vf', chain,
-            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
-            '-pix_fmt', 'yuv420p',
-            '-an', '-movflags', '+faststart', '-y', 'output.mp4',
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '26',
+            '-threads', '1', '-pix_fmt', 'yuv420p',
+            '-an', '-y', 'output.mp4',
           ],
         },
       ],

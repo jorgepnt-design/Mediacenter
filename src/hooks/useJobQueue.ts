@@ -13,7 +13,7 @@ import { ImageSource, encodeImage } from '../lib/imageProcess';
 import { baseName, safeName } from '../lib/format';
 import { detectKind, imageExtension } from '../lib/formats';
 import { explainError } from '../lib/errors';
-import { preferSingleThreadFor } from '../lib/platform';
+import { isIOS, preferSingleThreadFor } from '../lib/platform';
 import { acquireWakeLock, releaseWakeLock } from '../lib/wakeLock';
 import { probeMedia } from '../lib/probe';
 import { runRemote, shouldUseRemote } from '../lib/remote';
@@ -245,6 +245,15 @@ export function useJobQueue(settings: SettingsState) {
           patch(job.id, { status: 'canceled', progress: 0, etaMs: undefined });
         } else {
           const raw = error instanceof Error ? error.message : String(error);
+          if (
+            /undefined is not an object|is not a function|Cannot read propert|out of memory|memory access out of bounds/i.test(
+              raw,
+            )
+          ) {
+            // Nach einem WASM-/Worker-Abbruch ist die geladene Instanz nicht
+            // mehr zuverlässig. Der nächste Versuch startet mit einem frischen Core.
+            ffmpegClient.cancel();
+          }
           patch(job.id, (current) => ({
             status: 'error',
             error: explainError(error, current.log),
@@ -276,9 +285,14 @@ export function useJobQueue(settings: SettingsState) {
           .reduce((max, job) => Math.max(max, job.file.size), 0);
         setCoreLoad({ active: true, ratio: 0 });
         try {
+          const animationJobOnIOS =
+            isIOS &&
+            jobsRef.current.some(
+              (job) => job.status === 'pending' && job.task === 'gif',
+            );
           const info = await ffmpegClient.ensureLoaded(
             (ratio) => setCoreLoad({ active: true, ratio }),
-            { preferSingleThread: preferSingleThreadFor(largest) },
+            { preferSingleThread: preferSingleThreadFor(largest) || animationJobOnIOS },
           );
           setEngine(info);
         } finally {

@@ -21,12 +21,11 @@ export function explainError(error: unknown, log: string[] = []): string {
     return `Der Codec ${readable[name] ?? name} ist in dieser ffmpeg-Version nicht enthalten. Bitte einen anderen Codec wählen.`;
   }
 
-  // Der Core selbst kann beim internen Abbruch einen TypeError werfen. Der sagt
-  // nichts aus – die Ursache ist praktisch immer ein Abbruch der WASM-Laufzeit.
+  // Ein interner TypeError bedeutet, dass die WASM-/Worker-Instanz abgebrochen
+  // ist. Ohne eindeutigen Speicherhinweis darf die Meldung nicht behaupten,
+  // dass der Arbeitsspeicher die Ursache war.
   if (/undefined is not an object|is not a function|Cannot read propert/i.test(raw) && !/ffmpeg endete/i.test(raw)) {
-    return isIOS
-      ? 'Die Umwandlung wurde vom Browser abgebrochen – dem iPhone ist der Speicher ausgegangen. Wähle eine kleinere Zielauflösung (480p oder 720p), schneide das Video vorher zu oder nimm eine kürzere Datei.'
-      : 'Die Umwandlung wurde abgebrochen, vermutlich wegen Speichermangels. Bitte eine kleinere Zielauflösung wählen oder die Datei zuschneiden.';
+    return 'Der FFmpeg-Kern wurde intern beendet. Tippe auf „Erneut versuchen“ – die App startet dafür automatisch einen frischen, speichersparenden Kern.';
   }
 
   if (/2pass curve failed to converge/i.test(haystack)) {
