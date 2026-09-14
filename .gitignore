@@ -1,0 +1,20 @@
+node_modules
+dist
+dist-ssr
+.vite
+*.local
+.DS_Store
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-error.log*
+.vercel
+coverage
+server/node_modules
+
+# ffmpeg-Cores werden beim Build aus node_modules kopiert
+public/ffmpeg
+
+# TypeScript inkrementelle Builds
+*.tsbuildinfo

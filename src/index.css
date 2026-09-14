@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    height: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+    min-height: 100%;
+    /* Kein Doppeltipp-Zoom auf iOS */
+    touch-action: manipulation;
+    overscroll-behavior-y: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+      Arial, sans-serif;
+  }
+
+  /* Safari zoomt beim Fokus in Felder mit weniger als 16px Schriftgroesse. */
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
+  }
+
+  input[type='range'] {
+    @apply h-11 w-full appearance-none bg-transparent;
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    @apply h-2 rounded-full bg-slate-200 dark:bg-slate-700;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    @apply h-6 w-6 appearance-none rounded-full border-2 border-white bg-brand-600 shadow;
+    margin-top: -8px;
+  }
+
+  input[type='range']::-moz-range-track {
+    @apply h-2 rounded-full bg-slate-200 dark:bg-slate-700;
+  }
+
+  input[type='range']::-moz-range-thumb {
+    @apply h-6 w-6 rounded-full border-2 border-white bg-brand-600;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900;
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .px-safe {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Platz fuer die fixierte Aktionsleiste am unteren Rand */
+  .pb-action {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 6.5rem);
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
