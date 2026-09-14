@@ -360,7 +360,8 @@ function buildGif(job: Job, settings: GifSettings): BuiltJob {
           args: [
             ...before, '-i', input, ...after,
             '-vf', chain,
-            '-c:v', 'libwebp', '-lossless', '0', '-q:v', '75',
+            '-c:v', 'libwebp_anim', '-lossless', '0', '-q:v', '75',
+            '-compression_level', '4',
             '-loop', settings.loop ? '0' : '1',
             '-an', '-y', 'output.webp',
           ],
