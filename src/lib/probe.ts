@@ -2,8 +2,8 @@ import type { MediaInfo, MediaKind } from '../types';
 
 /**
  * Liest Dauer und Abmessungen ohne Dekodierung der gesamten Datei.
- * Schlaegt das fehl (z. B. HEVC am Desktop), bleiben die Werte leer – ffmpeg
- * ermittelt sie dann selbst.
+ * Safari meldet bei lokalen iPhone-Videos gelegentlich zunaechst Infinity als
+ * Dauer. Ein Sprung ans Dateiende zwingt WebKit, die echte Dauer nachzuladen.
  */
 export function probeMedia(file: File, kind: MediaKind): Promise<MediaInfo> {
   if (kind === 'image') return probeImage(file);
@@ -18,28 +18,72 @@ function probeAv(file: File, kind: MediaKind): Promise<MediaInfo> {
     element.muted = true;
     element.playsInline = true;
 
+    let settled = false;
+    let durationRecoveryStarted = false;
+
+    const readInfo = (): MediaInfo => ({
+      durationSec:
+        Number.isFinite(element.duration) && element.duration > 0
+          ? element.duration
+          : undefined,
+      width: element.videoWidth || undefined,
+      height: element.videoHeight || undefined,
+    });
+
     const finish = (info: MediaInfo) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      element.onloadedmetadata = null;
+      element.ondurationchange = null;
+      element.ontimeupdate = null;
+      element.onloadeddata = null;
+      element.onerror = null;
       element.removeAttribute('src');
       element.load?.();
       URL.revokeObjectURL(url);
       resolve(info);
     };
 
-    const timer = window.setTimeout(() => finish({}), 8000);
+    const finishIfDurationKnown = () => {
+      const info = readInfo();
+      if (!info.durationSec) return false;
+      finish(info);
+      return true;
+    };
+
+    const recoverSafariDuration = () => {
+      if (settled || durationRecoveryStarted) return;
+      durationRecoveryStarted = true;
+      try {
+        // WebKit ermittelt bei einigen MOV/MP4-Dateien die Dauer erst nach
+        // einem Seek. Sobald sie bekannt ist, feuert durationchange/timeupdate.
+        element.currentTime = 1e101;
+      } catch {
+        // Der zeitbasierte Fallback in estimate.ts sorgt trotzdem fuer eine
+        // sichtbare, als ungefaehr gekennzeichnete Groessenschaetzung.
+      }
+    };
+
+    const timer = window.setTimeout(() => finish(readInfo()), 12_000);
 
     element.onloadedmetadata = () => {
-      window.clearTimeout(timer);
-      finish({
-        durationSec: Number.isFinite(element.duration) ? element.duration : undefined,
-        width: element.videoWidth || undefined,
-        height: element.videoHeight || undefined,
-      });
+      if (!finishIfDurationKnown()) recoverSafariDuration();
     };
-    element.onerror = () => {
-      window.clearTimeout(timer);
-      finish({});
+    element.ondurationchange = () => {
+      finishIfDurationKnown();
     };
+    element.ontimeupdate = () => {
+      finishIfDurationKnown();
+    };
+    element.onloadeddata = () => {
+      if (!finishIfDurationKnown()) recoverSafariDuration();
+    };
+    element.onerror = () => finish(readInfo());
+
     element.src = url;
+    // Explizites load() ist fuer Blob-URLs auf iOS zuverlaessiger.
+    element.load();
   });
 }
 

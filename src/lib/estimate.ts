@@ -32,6 +32,35 @@ const ASSUMED_FPS = 30;
 /** Untergrenze, damit die Schätzung nie auf null fällt. */
 const MIN_VIDEO_KBIT = 32;
 
+/**
+ * Letzter Rueckfall, wenn der Browser keine Mediendauer liefert. Aus Dateityp
+ * und Aufloesung wird eine typische Quellbitrate angenommen. Das Ergebnis wird
+ * spaeter immer als grober Schaetzwert gekennzeichnet.
+ */
+function estimatedDurationFromFile(job: Job): number {
+  const sourceKbit = (() => {
+    if (job.kind === 'audio') {
+      const extension = job.name.split('.').pop()?.toLowerCase();
+      if (extension === 'wav') return 1411;
+      if (extension === 'flac') return 850;
+      if (extension === 'aac' || extension === 'm4a' || extension === 'ogg' || extension === 'opus') {
+        return 160;
+      }
+      return 192;
+    }
+
+    const pixels = (job.info.width ?? 0) * (job.info.height ?? 0);
+    if (pixels === 0) return 5000;
+    if (pixels <= 640 * 480) return 1500;
+    if (pixels <= 1280 * 720) return 3000;
+    if (pixels <= 1920 * 1080) return 6000;
+    if (pixels <= 2560 * 1440) return 10_000;
+    return 18_000;
+  })();
+
+  return Math.max(0.1, (job.file.size * 8) / 1000 / sourceKbit);
+}
+
 /** Zielabmessungen aus Quellgröße und Auflösungseinstellung. */
 export function targetDimensions(
   job: Job,
@@ -81,7 +110,16 @@ function videoKbitFor(job: Job, video: VideoSettings, durationSec: number): numb
   if (video.rateMode === 'bitrate') return video.videoBitrate;
 
   const dimensions = targetDimensions(job, video);
-  if (!dimensions) return null;
+  if (!dimensions) {
+    const sourceKbit = (job.file.size * 8) / 1000 / durationSec;
+    const codecRatio =
+      BITS_PER_PIXEL_AT_CRF23[video.codec] / BITS_PER_PIXEL_AT_CRF23.h264;
+    const qualityRatio = 2 ** ((23 - video.crf) / 6);
+    return Math.max(
+      MIN_VIDEO_KBIT,
+      Math.min(sourceKbit * 1.25, sourceKbit * codecRatio * qualityRatio * 0.85),
+    );
+  }
 
   const fps = video.fps === 'original' ? ASSUMED_FPS : video.fps;
   const bitsPerPixel =
@@ -107,8 +145,15 @@ function videoKbitFor(job: Job, video: VideoSettings, durationSec: number): numb
  * abhängt (GIF, Einzelbilder) – dann lieber nichts anzeigen als etwas Falsches.
  */
 export function estimateOutputSize(job: Job, settings: SettingsState): SizeEstimate | null {
-  const duration = effectiveDuration(job);
+  // Eine vorgegebene Zielgroesse ist auch ohne auslesbare Laufzeit exakt.
+  if (job.task === 'video' && settings.video.rateMode === 'size') {
+    return { bytes: settings.video.targetSizeMB * 1024 * 1024, accuracy: 'exact' };
+  }
+
+  const measuredDuration = effectiveDuration(job);
+  const duration = measuredDuration ?? estimatedDurationFromFile(job);
   if (!duration || duration <= 0) return null;
+  const durationIsEstimated = measuredDuration === undefined;
 
   if (job.task === 'extract' || job.task === 'audio') {
     const audio = job.task === 'extract' ? settings.extract : settings.audio;
@@ -117,16 +162,15 @@ export function estimateOutputSize(job: Job, settings: SettingsState): SizeEstim
       // erst beim Lauf fest. Deshalb hier die Kodier-Schätzung.
       return { bytes: (audioKbitFor(audio) * 1000 * duration) / 8, accuracy: 'rough' };
     }
-    return { bytes: (audioKbitFor(audio) * 1000 * duration) / 8, accuracy: 'exact' };
+    return {
+      bytes: (audioKbitFor(audio) * 1000 * duration) / 8,
+      accuracy: durationIsEstimated ? 'rough' : 'exact',
+    };
   }
 
   if (job.task !== 'video') return null;
 
   const video = settings.video;
-
-  if (video.rateMode === 'size') {
-    return { bytes: video.targetSizeMB * 1024 * 1024, accuracy: 'exact' };
-  }
 
   const videoKbit = videoKbitFor(job, video, duration);
   if (videoKbit === null) return null;
@@ -140,7 +184,9 @@ export function estimateOutputSize(job: Job, settings: SettingsState): SizeEstim
 
   const bytes = (((videoKbit + audioKbit) * 1000 * duration) / 8) * 1.02; // Container-Overhead
 
-  if (video.rateMode === 'bitrate') return { bytes, accuracy: 'exact' };
+  if (video.rateMode === 'bitrate') {
+    return { bytes, accuracy: durationIsEstimated ? 'rough' : 'exact' };
+  }
 
   // Ohne Vergrößerung wird eine Datei beim Neukodieren praktisch nie größer als
   // die Quelle. Der Deckel fängt Ausreißer bei ohnehin kleinen oder tonlosen
