@@ -7,6 +7,8 @@ import { VideoPanel } from './panels/VideoPanel';
 import { AudioPanel } from './panels/AudioPanel';
 import { FramePanel, GifPanel } from './panels/GifPanel';
 import { ImagePanel } from './panels/ImagePanel';
+import { EstimateBox } from './SizeEstimate';
+import { estimateOutputSize } from '../lib/estimate';
 
 const TAB_LABELS: Record<TaskType, string> = {
   video: 'Video',
@@ -52,6 +54,18 @@ export function SettingsSheet({
     [jobs],
   );
 
+  // Beispieldatei für die Größenschätzung: die erste Datei des offenen Bereichs.
+  const sampleJob = useMemo(
+    () => jobs.find((job) => job.task === current && !job.merged) ?? null,
+    [jobs, current],
+  );
+
+  const estimateLabel = useMemo(() => {
+    if (!sampleJob || current !== 'video') return undefined;
+    const estimate = estimateOutputSize(sampleJob, settings);
+    return estimate ? `ca. ${formatBytes(estimate.bytes)}` : `CRF ${settings.video.crf}`;
+  }, [sampleJob, current, settings]);
+
   return (
     <Sheet
       open={open}
@@ -96,11 +110,18 @@ export function SettingsSheet({
         </div>
       ) : null}
 
+      {current === 'video' || current === 'extract' || current === 'audio' ? (
+        <div className="mb-4">
+          <EstimateBox job={sampleJob} settings={settings} />
+        </div>
+      ) : null}
+
       <div role="tabpanel">
         {current === 'video' ? (
           <VideoPanel
             settings={settings.video}
             encoders={encoders}
+            estimateLabel={estimateLabel}
             onChange={(patch) => update('video', patch)}
           />
         ) : null}

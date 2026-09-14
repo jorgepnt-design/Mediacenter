@@ -14,10 +14,13 @@ export function VideoPanel({
   settings,
   onChange,
   encoders,
+  estimateLabel,
 }: {
   settings: VideoSettings;
   onChange: (patch: Partial<VideoSettings>) => void;
   encoders: string[] | null;
+  /** Voraussichtliche Dateigröße, direkt am Regler angezeigt. */
+  estimateLabel?: string;
 }) {
   const expert = settings.preset === 'custom';
   const codecAvailable = (codec: string) =>
@@ -45,6 +48,23 @@ export function VideoPanel({
           }
         />
       </Field>
+
+      {settings.rateMode === 'crf' ? (
+        <div>
+          <Slider
+            label="Kompression"
+            min={18}
+            max={36}
+            value={settings.crf}
+            display={estimateLabel ?? `CRF ${settings.crf}`}
+            onChange={(crf) => onChange({ crf, preset: 'custom' })}
+          />
+          <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+            <span>← bessere Qualität</span>
+            <span>kleinere Datei →</span>
+          </div>
+        </div>
+      ) : null}
 
       <Field label="Format">
         <Segmented
@@ -98,17 +118,6 @@ export function VideoPanel({
               onChange={(rateMode) => onChange({ rateMode })}
             />
           </Field>
-
-          {settings.rateMode === 'crf' ? (
-            <Slider
-              label="CRF (kleiner = bessere Qualität)"
-              min={14}
-              max={40}
-              value={settings.crf}
-              display={String(settings.crf)}
-              onChange={(crf) => onChange({ crf })}
-            />
-          ) : null}
 
           {settings.rateMode === 'bitrate' ? (
             <Field label="Video-Bitrate">

@@ -13,6 +13,7 @@ import { ImageSource, encodeImage } from '../lib/imageProcess';
 import { baseName, safeName } from '../lib/format';
 import { detectKind, imageExtension } from '../lib/formats';
 import { explainError } from '../lib/errors';
+import { preferSingleThreadFor } from '../lib/platform';
 import { acquireWakeLock, releaseWakeLock } from '../lib/wakeLock';
 import { probeMedia } from '../lib/probe';
 import { runRemote, shouldUseRemote } from '../lib/remote';
@@ -270,10 +271,14 @@ export function useJobQueue(settings: SettingsState) {
         (job) => job.status === 'pending' && job.task !== 'image',
       );
       if (needsFfmpeg && !ffmpegClient.loaded) {
+        const largest = jobsRef.current
+          .filter((job) => job.status === 'pending' && job.task !== 'image')
+          .reduce((max, job) => Math.max(max, job.file.size), 0);
         setCoreLoad({ active: true, ratio: 0 });
         try {
-          const info = await ffmpegClient.ensureLoaded((ratio) =>
-            setCoreLoad({ active: true, ratio }),
+          const info = await ffmpegClient.ensureLoaded(
+            (ratio) => setCoreLoad({ active: true, ratio }),
+            { preferSingleThread: preferSingleThreadFor(largest) },
           );
           setEngine(info);
         } finally {

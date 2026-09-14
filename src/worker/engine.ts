@@ -72,7 +72,10 @@ async function detectEncoders(ffmpeg: FFmpeg): Promise<string[]> {
   return [...found];
 }
 
-export async function loadEngine(emit: Partial<EngineEmitter> = {}): Promise<EngineInfo> {
+export async function loadEngine(
+  emit: Partial<EngineEmitter> = {},
+  options: { preferSingleThread?: boolean } = {},
+): Promise<EngineInfo> {
   if (info && instance) return info;
   if (loading) return loading;
 
@@ -80,7 +83,10 @@ export async function loadEngine(emit: Partial<EngineEmitter> = {}): Promise<Eng
   emit.loadProgress?.(0.05);
 
   loading = (async () => {
-    const wantMt = canUseMultithread();
+    const wantMt = canUseMultithread() && !options.preferSingleThread;
+    if (options.preferSingleThread) {
+      logSink('Große Datei: Single-Thread-Core gewählt, der braucht weniger Speicher.');
+    }
     let multithread = wantMt;
     try {
       instance = await createInstance(wantMt);

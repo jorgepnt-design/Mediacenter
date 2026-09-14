@@ -243,6 +243,7 @@ export default function App() {
             <JobCard
               key={job.id}
               job={job}
+              settings={settings}
               selectable={selectMode && job.kind !== 'image' && !job.merged}
               selected={selected.includes(job.id)}
               onSelect={(checked) =>

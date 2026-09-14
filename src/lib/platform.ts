@@ -44,8 +44,21 @@ export function canShareFiles(files: File[]): boolean {
  * Warnschwelle fuer die Eingangsdateigroesse. iOS Safari beendet den Tab schon
  * bei wenigen hundert MB WASM-Speicher – deshalb dort deutlich frueher warnen.
  */
-export const SIZE_WARN_BYTES = isIOS ? 300 * 1024 * 1024 : 1024 * 1024 * 1024;
-export const SIZE_HARD_HINT_BYTES = isIOS ? 800 * 1024 * 1024 : 2048 * 1024 * 1024;
+export const SIZE_WARN_BYTES = isIOS ? 120 * 1024 * 1024 : 1024 * 1024 * 1024;
+export const SIZE_HARD_HINT_BYTES = isIOS ? 400 * 1024 * 1024 : 2048 * 1024 * 1024;
+
+/**
+ * Der Multithread-Core ist schneller, belegt aber deutlich mehr Speicher (jeder
+ * Thread bekommt eigenen Stack, und die WASM-Speichergrenze steht bei geteiltem
+ * Speicher schon beim Start fest). Auf dem iPhone ist Speicher der Engpass,
+ * nicht Tempo – ab dieser Eingangsgroesse ist der Single-Thread-Core die
+ * verlaesslichere Wahl.
+ */
+export const SINGLE_THREAD_ABOVE_BYTES = 80 * 1024 * 1024;
+
+export function preferSingleThreadFor(largestInputBytes: number): boolean {
+  return isIOS && largestInputBytes >= SINGLE_THREAD_ABOVE_BYTES;
+}
 
 let avifSupport: Promise<boolean> | null = null;
 

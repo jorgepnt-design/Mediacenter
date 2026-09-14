@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import type { Job, TaskType } from '../types';
+import type { Job, SettingsState, TaskType } from '../types';
 import { Badge, Button, ProgressBar, Segmented, Toggle } from './ui';
 import { TrimControl } from './TrimControl';
+import { EstimateLine } from './SizeEstimate';
 import { formatBytes, formatDuration, formatEta, savings } from '../lib/format';
 import { blobToFile, downloadBlob, shareFiles } from '../lib/share';
 import { canShareFiles, isIOS } from '../lib/platform';
@@ -30,6 +31,7 @@ const STATUS: Record<Job['status'], { label: string; tone: 'neutral' | 'success'
 
 export function JobCard({
   job,
+  settings,
   selected,
   selectable,
   onSelect,
@@ -41,6 +43,7 @@ export function JobCard({
   onApplyToAll,
 }: {
   job: Job;
+  settings: SettingsState;
   selected: boolean;
   selectable: boolean;
   onSelect: (checked: boolean) => void;
@@ -79,6 +82,9 @@ export function JobCard({
             {job.info.durationSec ? ` · ${formatDuration(job.info.durationSec)}` : ''}
             {job.info.width ? ` · ${job.info.width}×${job.info.height}` : ''}
             {job.merged && job.sourceNames ? ` · aus ${job.sourceNames.length} Dateien` : ''}
+            {job.status === 'pending' && !job.merged ? (
+              <EstimateLine job={job} settings={settings} />
+            ) : null}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">

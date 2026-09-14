@@ -91,7 +91,10 @@ class FfmpegClient {
     };
   }
 
-  async ensureLoaded(onLoadProgress?: (ratio: number) => void): Promise<EngineInfo> {
+  async ensureLoaded(
+    onLoadProgress?: (ratio: number) => void,
+    options: { preferSingleThread?: boolean } = {},
+  ): Promise<EngineInfo> {
     if (this.info) return this.info;
     if (this.loadPromise) return this.loadPromise;
 
@@ -129,7 +132,11 @@ class FfmpegClient {
               },
               { once: true },
             );
-            worker.postMessage({ type: 'load', id });
+            worker.postMessage({
+              type: 'load',
+              id,
+              preferSingleThread: options.preferSingleThread,
+            });
           });
           this.worker = worker;
           this.info = info;
@@ -145,7 +152,10 @@ class FfmpegClient {
       }
 
       const engine = await this.loadFallback();
-      const info = await engine.loadEngine({ loadProgress: onLoadProgress });
+      const info = await engine.loadEngine(
+        { loadProgress: onLoadProgress },
+        { preferSingleThread: options.preferSingleThread },
+      );
       this.info = info;
       return info;
     })();

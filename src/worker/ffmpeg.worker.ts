@@ -3,7 +3,7 @@ import type { EngineMessage, EngineRequest } from '../types';
 import { loadEngine, runRequest, terminateEngine } from './engine';
 
 type Incoming =
-  | { type: 'load'; id: string }
+  | { type: 'load'; id: string; preferSingleThread?: boolean }
   | { type: 'run'; id: string; request: EngineRequest }
   | { type: 'terminate' };
 
@@ -19,10 +19,13 @@ self.onmessage = async (event: MessageEvent<Incoming>) => {
 
   if (data.type === 'load') {
     try {
-      const info = await loadEngine({
-        log: (message) => post({ type: 'log', id: null, message }),
-        loadProgress: (ratio) => post({ type: 'load-progress', ratio }),
-      });
+      const info = await loadEngine(
+        {
+          log: (message) => post({ type: 'log', id: null, message }),
+          loadProgress: (ratio) => post({ type: 'load-progress', ratio }),
+        },
+        { preferSingleThread: data.preferSingleThread },
+      );
       post({ type: 'ready', multithread: info.multithread, encoders: info.encoders });
     } catch (error) {
       post({ type: 'error', id: data.id, message: String(error) });
