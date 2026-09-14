@@ -14,9 +14,20 @@ createRoot(container).render(
 
 // PWA: Service Worker registrieren (rein lokaler Cache, keine Datenuebertragung).
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  let reloadingForUpdate = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloadingForUpdate) return;
+    reloadingForUpdate = true;
+    window.location.reload();
+  });
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      /* Ohne Service Worker funktioniert die App weiterhin. */
-    });
+    const buildId = new URL(import.meta.url).pathname.split('/').pop() ?? 'current';
+    navigator.serviceWorker
+      .register(`/sw.js?v=${encodeURIComponent(buildId)}`, { updateViaCache: 'none' })
+      .then((registration) => registration.update())
+      .catch(() => {
+        /* Ohne Service Worker funktioniert die App weiterhin. */
+      });
   });
 }

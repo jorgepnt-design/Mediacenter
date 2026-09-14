@@ -1,6 +1,6 @@
 /* Mediacenter Service Worker – App-Shell + Laufzeit-Cache fuer die ffmpeg-Cores.
    Es werden keinerlei Nutzerdateien gespeichert oder uebertragen. */
-const VERSION = 'mediacenter-v1';
+const VERSION = 'mediacenter-v2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const CORE_CACHE = `${VERSION}-ffmpeg-core`;
@@ -11,7 +11,9 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL))
+      .then((cache) =>
+        Promise.all(SHELL.map((path) => cache.add(new Request(path, { cache: 'reload' })))),
+      )
       .catch(() => undefined)
       .then(() => self.skipWaiting()),
   );
@@ -58,7 +60,7 @@ self.addEventListener('fetch', (event) => {
   // Navigationen: Netz zuerst, offline aus dem Shell-Cache.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-store' })
         .then((response) => {
           const copy = response.clone();
           caches.open(SHELL_CACHE).then((cache) => cache.put('/index.html', copy));

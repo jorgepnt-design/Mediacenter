@@ -264,9 +264,11 @@ export function Toggle({
         }`}
       >
         <span
-          className={`absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-            checked ? 'translate-x-7' : 'translate-x-1'
-          }`}
+          className="absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform"
+          style={{
+            left: '4px',
+            transform: checked ? 'translateX(24px)' : 'translateX(0)',
+          }}
         />
       </button>
     </div>
