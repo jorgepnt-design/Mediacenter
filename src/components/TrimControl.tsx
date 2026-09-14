@@ -29,6 +29,44 @@ export function TrimControl({
     if (mediaRef.current) mediaRef.current.currentTime = seconds;
   };
 
+  /** Hält die native Vorschau innerhalb des gewählten Ausschnitts. */
+  const handlePlay = (media: HTMLMediaElement) => {
+    if (media.currentTime < trim.start || media.currentTime >= end - 0.05) {
+      media.currentTime = trim.start;
+      setPosition(trim.start);
+    }
+  };
+
+  const handleTimeUpdate = (media: HTMLMediaElement) => {
+    const current = media.currentTime;
+
+    if (current < trim.start - 0.05) {
+      media.currentTime = trim.start;
+      setPosition(trim.start);
+      return;
+    }
+
+    if (current >= end - 0.05) {
+      media.pause();
+      media.currentTime = end;
+      setPosition(end);
+      return;
+    }
+
+    setPosition(current);
+  };
+
+  const handleSeeking = (media: HTMLMediaElement) => {
+    if (media.currentTime < trim.start) {
+      media.currentTime = trim.start;
+      setPosition(trim.start);
+    } else if (media.currentTime > end) {
+      media.pause();
+      media.currentTime = end;
+      setPosition(end);
+    }
+  };
+
   return (
     <div className="space-y-3">
       {url ? (
@@ -40,8 +78,13 @@ export function TrimControl({
             playsInline
             muted
             preload="metadata"
-            onLoadedMetadata={(event) => setLength(event.currentTarget.duration || 0)}
-            onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)}
+            onLoadedMetadata={(event) => {
+              setLength(event.currentTarget.duration || 0);
+              if (trim.start > 0) event.currentTarget.currentTime = trim.start;
+            }}
+            onPlay={(event) => handlePlay(event.currentTarget)}
+            onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
+            onSeeking={(event) => handleSeeking(event.currentTarget)}
             className="max-h-64 w-full rounded-xl bg-black"
           />
         ) : (
@@ -50,8 +93,13 @@ export function TrimControl({
             src={url}
             controls
             preload="metadata"
-            onLoadedMetadata={(event) => setLength(event.currentTarget.duration || 0)}
-            onTimeUpdate={(event) => setPosition(event.currentTarget.currentTime)}
+            onLoadedMetadata={(event) => {
+              setLength(event.currentTarget.duration || 0);
+              if (trim.start > 0) event.currentTarget.currentTime = trim.start;
+            }}
+            onPlay={(event) => handlePlay(event.currentTarget)}
+            onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
+            onSeeking={(event) => handleSeeking(event.currentTarget)}
             className="w-full"
           />
         )
@@ -104,19 +152,36 @@ export function TrimControl({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => onChange({ ...trim, start: position })}>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                onChange({ ...trim, start: Math.max(0, Math.min(position, end - 0.1)) })
+              }
+            >
               Start hier ({formatDuration(position)})
             </Button>
-            <Button variant="secondary" onClick={() => onChange({ ...trim, end: position })}>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                onChange({ ...trim, end: Math.min(total, Math.max(position, trim.start + 0.1)) })
+              }
+            >
               Ende hier
             </Button>
-            <Button variant="ghost" onClick={() => onChange({ start: 0, end: null })}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                onChange({ start: 0, end: null });
+                seek(0);
+              }}
+            >
               Zurücksetzen
             </Button>
           </div>
 
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Ausschnitt: {formatDuration(Math.max(0, end - trim.start))} von {formatDuration(total)}
+            {' · Die Vorschau stoppt automatisch am Endpunkt.'}
           </p>
         </div>
       ) : (
