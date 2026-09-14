@@ -22,6 +22,7 @@ veröffentlicht.
 | **Audio konvertieren** | zwischen mp3, wav, aac/m4a, flac, ogg/opus, wma – Bitrate, Abtastrate, Mono/Stereo, Lautstärke-Normalisierung (`loudnorm`) |
 | **Bilder** | JPG, PNG, WebP, AVIF, GIF, BMP, TIFF, **HEIC-Import** · Qualitätsregler mit Live-Vorschau und Live-Größenanzeige · **Zielgröße in kB** · Skalieren nach Breite/Höhe/Prozent mit Seitenverhältnis-Sperre und „nicht vergrößern" · EXIF entfernen oder behalten · Hintergrundfarbe bei Transparenz → JPG |
 | **Extras** | Trimmen mit Vorschau-Scrubber, Video → GIF / animiertes WebP (FPS, Breite, Loop, Palette), Einzelbild & Bildsequenz, Drehen/Spiegeln, Stummschalten, Metadaten entfernen, mehrere Dateien **zusammenfügen** (concat) |
+| **Größe vorab** | Kompressionsregler mit **voraussichtlicher Dateigröße** direkt am Regler, Kasten „Voraussichtliche Größe" über den Einstellungen und eine Zeile auf jeder Job-Karte – noch vor dem Start |
 | **Stapel** | Warteschlange mit Status je Datei, Fortschritt je Datei und gesamt, Restzeit, Abbrechen, Wiederholen, „Optionen auf alle anwenden" |
 | **Ergebnisse** | Größe vorher/nachher inkl. Ersparnis, Vorschau (Video, Audio, Bildvergleich vorher/nachher), Einzel-Download, **Teilen über das iOS-Share-Sheet**, „Alle als ZIP" |
 
@@ -111,7 +112,10 @@ ersten Job geladen und danach vom Service Worker dauerhaft gecacht.
   Vordergrund lassen" – iOS pausiert WASM im Hintergrund.
 * Warteschlange **strikt sequentiell** (ein Job gleichzeitig), damit der Speicher reicht.
 * Vorschau-Player mit `playsinline`.
-* **Speicherwarnung ab ca. 300 MB** Eingangsdatei mit direktem Vorschlag, auf 720p zu gehen.
+* **Speicherwarnung ab ca. 120 MB** Eingangsdatei mit direktem Vorschlag, auf 720p zu gehen.
+* **Ab 80 MB Eingangsdatei wird der Single-Thread-Core geladen**, auch wenn der
+  Multithread-Core verfügbar wäre: langsamer, aber deutlich sparsamer beim Speicher – und
+  Speicher ist auf dem iPhone der Engpass, nicht Tempo.
 * Rückfrage beim Verlassen der Seite, solange ein Job läuft.
 * PWA: Manifest (`display: standalone`), Apple-Touch-Icon, iOS-Splashscreens, dezenter
   Hinweis „Zum Home-Bildschirm hinzufügen".
@@ -156,6 +160,14 @@ scripts/              Icon-Generator, Core-Kopierschritt
   2-Pass-Kurve von x264 scheitern („2pass curve failed to converge"). Klappt der
   2-Pass-Lauf trotzdem nicht, greift automatisch ein einzelner Durchgang mit
   VBV-Begrenzung.
+* **Größenschätzung**: aus Zielauflösung, Bildrate, Codec und CRF, nach oben begrenzt durch
+  die Bitrate der Quelle und – ohne Vergrößerung – durch die Quellgröße selbst. Bei fester
+  Bitrate oder Zielgröße ist die Rechnung exakt, sonst als Schätzwert gekennzeichnet
+  (`src/lib/estimate.ts`).
+* **Core-Patch**: Der ausgelieferte ffmpeg-Core ruft in `printErr()` ungeprüft
+  `message.startsWith()` auf. Bricht ffmpeg intern ab, überdeckt der dadurch ausgelöste
+  TypeError die eigentliche Ursache. Der Kopierschritt ergänzt deshalb eine Typprüfung
+  (`scripts/copy-ffmpeg-core.mjs`), damit die echte ffmpeg-Meldung im Protokoll landet.
 * **„Ohne Neukodierung kopieren"** läuft als erster Versuch; scheitert er, weil Codec und
   Container nicht zusammenpassen, kodiert die App ohne Nachfrage neu.
 * **Fehler** erscheinen als verständlicher deutscher Satz plus ausklappbarem technischen
