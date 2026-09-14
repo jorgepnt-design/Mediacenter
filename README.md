@@ -6,6 +6,10 @@ Kein Upload, kein Konto, keine Werbung, kein Tracking. Alle Dateien bleiben auf 
 Die App ist **mobil zuerst** gebaut: wichtigste Zielplattform ist das iPhone (Safari, iOS 17+),
 als PWA auf dem Home-Bildschirm. Die Desktop-Ansicht ist die Erweiterung, nicht umgekehrt.
 
+**Live: https://mediacenter-drab.vercel.app** – auf dem iPhone in Safari öffnen, dann
+Teilen-Symbol → „Zum Home-Bildschirm". Jeder Push auf `main` wird automatisch
+veröffentlicht.
+
 ---
 
 ## Funktionen
