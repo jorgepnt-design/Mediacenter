@@ -352,6 +352,27 @@ function buildGif(job: Job, settings: GifSettings): BuiltJob {
     ...transformFilters(job.transform),
   ].join(',');
 
+  if (settings.format === 'mp4') {
+    return {
+      inputName: input,
+      passes: [
+        {
+          args: [
+            ...before, '-i', input, ...after,
+            '-vf', chain,
+            '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26',
+            '-pix_fmt', 'yuv420p',
+            '-an', '-movflags', '+faststart', '-y', 'output.mp4',
+          ],
+        },
+      ],
+      strategy: 'all',
+      outputs: ['output.mp4'],
+      outName: `${safeName(baseName(job.name))}-whatsapp.mp4`,
+      mime: 'video/mp4',
+    };
+  }
+
   if (settings.format === 'webp') {
     return {
       inputName: input,
@@ -360,10 +381,11 @@ function buildGif(job: Job, settings: GifSettings): BuiltJob {
           args: [
             ...before, '-i', input, ...after,
             '-vf', chain,
+            '-vsync', '0',
             '-c:v', 'libwebp_anim',
             '-pix_fmt', 'yuva420p',
             '-lossless', '0', '-q:v', '75',
-            '-compression_level', '4',
+            '-compression_level', '4', '-preset', 'picture',
             '-loop', settings.loop ? '0' : '1',
             '-an', '-f', 'webp', '-y', 'output.webp',
           ],

@@ -1,6 +1,6 @@
 /* Mediacenter Service Worker – App-Shell + Laufzeit-Cache fuer die ffmpeg-Cores.
    Es werden keinerlei Nutzerdateien gespeichert oder uebertragen. */
-const VERSION = 'mediacenter-v2';
+const VERSION = 'mediacenter-v3';
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const CORE_CACHE = `${VERSION}-ffmpeg-core`;

@@ -100,7 +100,7 @@ export default function App() {
 
   const shareAll = useCallback(async () => {
     if (resultFiles.length === 0) return;
-    const outcome = await shareFiles(resultFiles, 'Mediacenter');
+    const outcome = await shareFiles(resultFiles);
     if (outcome === 'unsupported') notify('Teilen wird hier nicht unterstützt – bitte herunterladen.', 'error');
   }, [notify, resultFiles]);
 

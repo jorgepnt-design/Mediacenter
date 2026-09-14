@@ -506,6 +506,15 @@ export function useJobQueue(settings: SettingsState) {
   };
 }
 
+function countAsciiChunks(data: Uint8Array, marker: string): number {
+  const bytes = [...marker].map((character) => character.charCodeAt(0));
+  let count = 0;
+  for (let index = 0; index <= data.length - bytes.length; index += 1) {
+    if (bytes.every((byte, offset) => data[index + offset] === byte)) count += 1;
+  }
+  return count;
+}
+
 async function materialize(
   files: EngineOutputFile[],
   outName: string,
@@ -524,6 +533,16 @@ async function materialize(
       size: zip.size,
       extras: files.map((file) => ({ name: file.name, blob: new Blob([file.data as BlobPart]) })),
     };
+  }
+
+  if (
+    mime === 'image/webp' &&
+    (!files[0] || countAsciiChunks(files[0].data, 'ANIM') === 0 ||
+      countAsciiChunks(files[0].data, 'ANMF') < 2)
+  ) {
+    throw new Error(
+      'Die WebP-Datei enthält nur ein Standbild. Nutze für WhatsApp bitte den neuen MP4-Export.',
+    );
   }
 
   const blob = new Blob([files[0].data as BlobPart], { type: mime });

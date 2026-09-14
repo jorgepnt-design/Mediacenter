@@ -13,11 +13,12 @@ export function GifPanel({
       <Field label="Format">
         <Segmented
           ariaLabel="Format"
-          columns={2}
+          columns={3}
           value={settings.format}
           options={[
             { value: 'gif', label: 'GIF', hint: 'überall abspielbar' },
-            { value: 'webp', label: 'Animiertes WebP', hint: 'deutlich kleiner' },
+            { value: 'webp', label: 'WebP', hint: 'kleiner, nicht für WhatsApp' },
+            { value: 'mp4', label: 'WhatsApp', hint: 'kleines MP4-Video' },
           ]}
           onChange={(format) => onChange({ format })}
         />
@@ -44,11 +45,17 @@ export function GifPanel({
         />
       </Field>
 
-      <Toggle
-        label="Endlos wiederholen"
-        checked={settings.loop}
-        onChange={(loop) => onChange({ loop })}
-      />
+      {settings.format !== 'mp4' ? (
+        <Toggle
+          label="Endlos wiederholen"
+          checked={settings.loop}
+          onChange={(loop) => onChange({ loop })}
+        />
+      ) : (
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          MP4 wird von WhatsApp zuverlässig angenommen und bleibt deutlich kleiner als GIF.
+        </p>
+      )}
 
       {settings.format === 'gif' ? (
         <Toggle

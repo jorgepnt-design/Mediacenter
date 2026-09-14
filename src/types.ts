@@ -72,7 +72,7 @@ export interface ExtractSettings {
 export type AudioSettings = ExtractSettings;
 
 export interface GifSettings {
-  format: 'gif' | 'webp';
+  format: 'gif' | 'webp' | 'mp4';
   fps: number;
   width: number;
   loop: boolean;

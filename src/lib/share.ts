@@ -1,10 +1,10 @@
 import { canShareFiles } from './platform';
 
 /** Ergebnis ueber das System-Share-Sheet teilen (iOS: Fotos, WhatsApp, AirDrop). */
-export async function shareFiles(files: File[], title: string): Promise<'shared' | 'unsupported' | 'canceled'> {
+export async function shareFiles(files: File[]): Promise<'shared' | 'unsupported' | 'canceled'> {
   if (!canShareFiles(files)) return 'unsupported';
   try {
-    await navigator.share({ files, title });
+    await navigator.share({ files });
     return 'shared';
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') return 'canceled';

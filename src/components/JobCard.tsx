@@ -253,10 +253,11 @@ function ResultView({ job, onRetry }: { job: Job; onRetry: () => void }) {
   const isVideoResult = /\.(mp4|webm|mkv|mov)$/i.test(result.name);
   const isAudioResult = /\.(mp3|wav|m4a|aac|flac|ogg|opus)$/i.test(result.name);
   const isImageResult = /\.(jpg|jpeg|png|webp|avif|gif)$/i.test(result.name);
+  const isLargeGif = /\.gif$/i.test(result.name) && result.size > 25 * 1024 * 1024;
 
   const onShare = async () => {
     setSharing(true);
-    const outcome = await shareFiles([shareFile], result.name);
+    const outcome = await shareFiles([shareFile]);
     setSharing(false);
     if (outcome === 'unsupported') {
       setShareNote('Teilen wird hier nicht unterstützt – nutze stattdessen „Herunterladen".');
@@ -283,6 +284,13 @@ function ResultView({ job, onRetry }: { job: Job; onRetry: () => void }) {
           </p>
         ) : null}
       </div>
+
+      {isLargeGif ? (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
+          Dieses GIF ist sehr groß und wird von WhatsApp möglicherweise nicht übernommen.
+          Erstelle denselben Ausschnitt mit dem Format „WhatsApp“ als kleines MP4-Video.
+        </div>
+      ) : null}
 
       {isVideoResult ? (
         <video
